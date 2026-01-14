@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>G na G sa Serbisyo| Barangay Request Records</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+
+<style>
+body {
+  background: #f5f5f5;
+}
+
+.container {
+  max-width: 100%;
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+}
+
+.filters {
+  margin-bottom: 1rem;
+}
+
+.table-container {
+  overflow-x: hidden; /* NO SCROLL */
+}
+
+table {
+  table-layout: fixed; /* FORCE FIT */
+  width: 100%;
+}
+
+th, td {
+  padding: 0.5rem;
+  font-size: 0.85rem;
+  white-space: normal;      /* ALLOW WRAP */
+  word-wrap: break-word;
+  text-align: left;
+}
+
+th {
+  background: #f0f0f0;
+  font-weight: 600;
+}
+
+.input {
+  width: 100%;
+}
+
+</style>
+</head>
+
+<body>
+
+<section class="hero is-primary">
+  <div class="hero-body">
+    <h1 class="title has-text-white">
+      G na G sa Serbisyo| Barangay Request - Infrastructure Records
+    </h1>
+  </div>
+</section>
+
+<div class="container mt-4">
+
+  <!-- FILTERS -->
+  <div class="filters">
+    <div class="field is-grouped">
+      
+      <div class="control">
+        <div class="select">
+          <select id="barangayFilter">
+            <option value="">All Barangays</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="control">
+        <div class="select">
+          <select id="statusFilter">
+            <option value="">All Status</option>
+            <option value="Coordinated">Coordinated</option>
+            <option value="On going">On going</option>
+            <option value="Accomplished">Accomplished</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="control is-expanded">
+        <input class="input" id="searchInput" placeholder="Search records">
+      </div>
+
+    </div>
+  </div>
+
+  <!-- TABLE -->
+  <div class="table-container">
+    <table class="table is-fullwidth is-striped is-hoverable is-bordered">
+      <thead>
+        <tr>
+          <th>Barangay</th>
+          <th>Location</th>
+          <th>Requested By</th>
+          <th>What To Do</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody id="recordsTable"></tbody>
+    </table>
+  </div>
+
+</div>
+
+<script>
+const scriptURL = "https://script.google.com/macros/s/AKfycbxY654PzxFin4MHi3uTYc3K8gctzF1AASFFDHXnzjjvubxwrDSD9Esrx8df428g9Q6AMw/exec";
+
+const tableBody = document.getElementById("recordsTable");
+const barangayFilter = document.getElementById("barangayFilter");
+const statusFilter = document.getElementById("statusFilter");
+const searchInput = document.getElementById("searchInput");
+
+let records = [];
+
+// LOAD DATA
+async function loadRecords() {
+  try {
+    const res = await fetch(scriptURL);
+    const json = await res.json();
+
+    if (json.status === "success") {
+      records = json.data;
+      populateBarangay();
+      render(records);
+    }
+  } catch (err) {
+    console.error("Error loading records:", err);
+  }
+}
+
+// POPULATE BARANGAY FILTER
+function populateBarangay() {
+  const barangays = [...new Set(records.map(r => r.Barangay))];
+  barangays.forEach(b => {
+    barangayFilter.innerHTML += `<option value="${b}">${b}</option>`;
+  });
+}
+
+// RENDER TABLE
+function render(data) {
+  tableBody.innerHTML = "";
+
+  data.forEach(r => {
+    tableBody.innerHTML += `
+      <tr>
+        <td>${r.Barangay || ""}</td>
+        <td>${r.Location || ""}</td>
+        <td>${r.RequestedBy || ""}</td>
+        <td>${r.WhatToDo || ""}</td>
+        <td>${(r.Status || "").trim()}</td>
+      </tr>
+    `;
+  });
+}
+
+// APPLY FILTERS
+function applyFilters() {
+  const barangay = barangayFilter.value;
+  const status = statusFilter.value;
+  const key = searchInput.value.toLowerCase();
+
+  const filtered = records.filter(r =>
+    (!barangay || r.Barangay === barangay) &&
+    (!status || (r.Status || "").toLowerCase() === status.toLowerCase()) &&
+    JSON.stringify(r).toLowerCase().includes(key)
+  );
+
+  render(filtered);
+}
+
+// EVENTS
+barangayFilter.addEventListener("change", applyFilters);
+statusFilter.addEventListener("change", applyFilters);
+searchInput.addEventListener("input", applyFilters);
+
+// INIT
+loadRecords();
+</script>
+
+</body>
+</html>
